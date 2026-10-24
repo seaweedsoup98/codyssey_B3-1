@@ -8,12 +8,12 @@ AWS 서울 리전(`ap-northeast-2`)에 VPC, Public Subnet, Internet Gateway, Rou
 
 | 필수 결과물 | 위치 | 상태 |
 |---|---|---|
-| 아키텍처 | [docs/architecture.png](docs/architecture.png) (편집 원본: [architecture.dot](docs/architecture.dot)) | 구성도 작성 |
+| 아키텍처 | [docs/architecture.svg](docs/architecture.svg) (편집 원본: [architecture.dot](docs/architecture.dot)) | 구성도 작성 |
 | 외부 접속 | 이 문서 + `docs/screenshots/external-health.png` | **실제 검증·스크린샷 필요** |
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | 절차/양식 작성, **실제 오류 검증 필요** |
 | 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | 점검 항목 작성, **실제 삭제 확인 필요** |
 
-![B3-1 AWS 아키텍처](docs/architecture.png)
+![B3-1 AWS 아키텍처](docs/architecture.svg)
 
 ## 주요 구현
 
