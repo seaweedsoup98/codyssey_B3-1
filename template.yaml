@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Codyssey B3-1 - public Nginx EC2 in a dedicated VPC
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  SshCidr:
+    Type: String
+    Description: Learner public IPv4 with /32
+    AllowedPattern: '^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/32$'
+  AmazonLinuxAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+Resources:
+  LabVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{Key: Name, Value: b3-1-vpc}]
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LabVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags: [{Key: Name, Value: b3-1-public-subnet}]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{Key: Name, Value: b3-1-igw}]
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref LabVPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LabVPC
+      Tags: [{Key: Name, Value: b3-1-public-route}]
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public HTTP and learner-IP SSH
+      VpcId: !Ref LabVPC
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0}
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SshCidr
+      Tags: [{Key: Name, Value: b3-1-web-sg}]
+  WebInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: [PublicRoute, PublicRouteAssociation]
+    Properties:
+      ImageId: !Ref AmazonLinuxAmi
+      InstanceType: t3.micro
+      CreditSpecification: {CPUCredits: standard}
+      KeyName: !Ref KeyName
+      MetadataOptions: {HttpTokens: required}
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref PublicSubnet
+          GroupSet: [!Ref WebSecurityGroup]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      UserData: !Base64 |
+        #!/bin/bash
+        set -euo pipefail
+        dnf install -y nginx
+        printf '%s\n' '<!doctype html><html lang="en"><meta charset="utf-8"><title>B3-1</title><h1>Hello Cloud - B3-1</h1></html>' > /usr/share/nginx/html/index.html
+        printf 'OK\n' > /usr/share/nginx/html/health
+        systemctl enable --now nginx
+      Tags: [{Key: Name, Value: b3-1-web}]
+Outputs:
+  PublicIp:
+    Value: !GetAtt WebInstance.PublicIp
+  HealthUrl:
+    Value: !Sub 'http://${WebInstance.PublicIp}/health'
+  InstanceId:
+    Value: !Ref WebInstance
+  SecurityGroupId:
+    Value: !Ref WebSecurityGroup
