@@ -1,0 +1,6 @@
+*.pem
+*.key
+.env
+.aws/
+__pycache__/
+.pytest_cache/
