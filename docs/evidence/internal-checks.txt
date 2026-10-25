@@ -1,0 +1,29 @@
+# 실제 SSH 및 EC2 내부 검증: 사용자 제공 터미널 출력에서 핵심 명령/결과 발췌
+# EC2: i-0fe03d78532fbbe17 / Amazon Linux 2023, 퍼블릭 IP 3.35.220.184
+# WSL 공인 IP와 Security Group SSH /32 허용 주소는 일치함.
+jiho@JIHO-DESKTOP:~$ ssh -i ~/.ssh/b3-1.pem ec2-user@3.35.220.184
+[ec2-user@ip-10-0-1-32 ~]$ sudo cloud-init status --wait
+status: done
+[ec2-user@ip-10-0-1-32 ~]$ systemctl is-active nginx
+active
+[ec2-user@ip-10-0-1-32 ~]$ curl -i http://localhost/health
+HTTP/1.1 200 OK
+Server: nginx/1.30.6
+Date: Sun, 25 Oct 2026 22:58:14 GMT
+Content-Type: application/octet-stream
+Content-Length: 3
+Last-Modified: Sun, 25 Oct 2026 22:52:02 GMT
+Connection: keep-alive
+ETag: "6ade8812-3"
+Accept-Ranges: bytes
+
+OK
+[ec2-user@ip-10-0-1-32 ~]$ curl -I https://example.com
+HTTP/2 200
+date: Sun, 25 Oct 2026 22:58:19 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+...
+[ec2-user@ip-10-0-1-32 ~]$ exit
+logout
+Connection to 3.35.220.184 closed.

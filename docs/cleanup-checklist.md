@@ -1,6 +1,6 @@
 # B3-1 리소스 정리 — 서비스가 안 보이게 되는 것과 비용이 끝나는 것은 다르다
 
-> **현재 AWS에서 종료/삭제를 수행한 기록이 없습니다.** 아래의 [ ]는 **실제 확인 후에만** [x]로 바꾸세요. AWS 서울 리전에서 이름이 `b3-1-`인 **이 실습에서 생성한 자원만** 삭제하고, 계정의 기존 프로젝트 자원은 건드리지 않습니다.
+> **실제 외부 접속 및 IAM 오류 해결 증빙은 확보했지만 AWS 종료/삭제는 아직 실행 또는 확인하지 않았습니다.** 아래의 [ ]는 **실제 확인 후에만** [x]로 바꾸세요. AWS 서울 리전에서 이름이 `b3-1-`인 **이 실습에서 생성한 자원만** 삭제하고, 계정의 기존 프로젝트 자원은 건드리지 않습니다.
 
 ## 왜 'EC2 Stop'만 하면 안 되나?
 
@@ -8,8 +8,8 @@ EC2를 **Stop(중지)**하면 컴퓨터 작동은 멈추지만 EBS 볼륨 등은
 
 ## 시작 전 두 가지 확인
 
-- [ ] **실습 당시** `GET http://<PUBLIC_IP>/health` 200/OK 스크린샷을 `docs/screenshots/external-health.png`에 저장했고 README에 실제 URL 및 시각을 적었다.
-- [ ] `docs/troubleshooting.md`에 실제 오류 관찰 → 로그/검증 → 조치 → 결과를 1건 이상 기록했다.
+- [x] **외부 접속 증빙 확보:** 방식 A 실제 브라우저 캡처 `docs/screenshots/external-page.png`, 방식 B 외부 curl 원문 `docs/evidence/external-health.txt`, README의 실제 URL 및 검증 시각 기록.
+- [x] `docs/troubleshooting.md`에 실제 IAM `ec2:GetSecurityGroupsForVpc` 권한 누락 → 정책 버전 2 수정 → EC2 배포 성공 사례를 기록했다.
 
 **먼저 답해야 할 질문:** 어떤 방법으로 만들었나요?
 

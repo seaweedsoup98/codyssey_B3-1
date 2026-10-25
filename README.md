@@ -2,7 +2,7 @@
 
 AWS 서울 리전(`ap-northeast-2`)에 **VPC → Public Subnet → Internet Gateway/Route Table → Security Group → EC2/Nginx**를 연결하고 외부에서 HTTP로 접속하는 미션입니다. 보너스 과제(HTTPS/Docker)는 제외했습니다.
 
-> **현재 상태:** 인프라 정의, 아키텍처 및 **학습·실습 가이드 작성**. **AWS 실배포, 외부 접속 스크린샷, 실제 트러블슈팅 수행, 리소스 삭제는 아직 검증하지 않았습니다.** 예시 출력을 실습 성공으로 오인하지 마세요.
+> **실제 실습 상태 (2026-10-26 KST):** AWS 콘솔에서 직접 VPC/서브넷/IGW/라우팅/SG/EC2/Nginx를 만들고 SSH·내부 HTTP 200·아웃바운드 HTTP 200·브라우저 접속·외부 `/health` HTTP 200/`OK`를 확인했습니다. **실습 리소스 삭제는 아직 확인되지 않았습니다.** 이 저장소의 CloudFormation 템플릿은 별도의 재현용 예제이며 실제 실습은 콘솔 수동 경로 A로 진행했습니다.
 
 ## 먼저 이것부터: 서버가 켜졌는데 밖에서 접속이 안 되는 이유
 
@@ -44,7 +44,7 @@ IAM은 이 네트워크 흐름과는 별도로 **누가 AWS 자원을 생성/수
 | 파일 | 역할 |
 |---|---|
 | [template.yaml](template.yaml) | AWS VPC `10.0.0.0/16`, Subnet `10.0.1.0/24`, IGW/기본 경로, SG, `t3.micro`+Nginx, gp3 8GiB 정의 |
-| [iam/least-privilege-policy.json](iam/least-privilege-policy.json) | 실습 IAM 사용자용 제한 정책 **초안** (AWS 실권한 검증 필요) |
+| [iam/least-privilege-policy.json](iam/least-privilege-policy.json) | 실습 IAM 사용자에게 적용한 제한 정책의 소스. 실제 AWS에서 누락된 SG 조회 권한을 보완하여 정책 버전 2로 적용 |
 | [scripts/verify.sh](scripts/verify.sh) | CloudFormation 경로 전용: 인스턴스/SSH/Nginx/localhost/아웃바운드/외부 접속 검사 |
 | [docs/architecture.png](docs/architecture.png) | 미션 제출용 아키텍처 그림 ([편집 가능한 SVG](docs/architecture.svg)) |
 | [tests/test_template.py](tests/test_template.py) | 템플릿 구조 정적 검사. AWS 실배포 검증과는 다름 |
@@ -56,26 +56,48 @@ python -m pip install PyYAML
 python -m unittest discover -s tests -v
 ```
 
-## 미션 제출 4종과 남은 실제 증빙
+## 실제 배포 결과 및 미션 제출 증빙 (2026-10-26)
+
+**배포 경로:** AWS 콘솔 수동 생성 (경로 A). CloudFormation 스택은 사용하지 않았습니다.
+
+| 리소스 | 확인된 값 |
+|---|---|
+| 리전 | `ap-northeast-2` (서울) |
+| VPC | `b3-1-vpc` · `vpc-092e559c4035289db` · `10.0.0.0/16` |
+| Public Subnet | `b3-1-public-subnet` · `subnet-078b1593e96abeeb0` · `10.0.1.0/24` |
+| IGW | `b3-1-igw` · `igw-00435840b6f0950ae` · VPC 연결 |
+| Route Table | `b3-1-public-route` · `rtb-0476ec11e4a44b4af` · `0.0.0.0/0 → IGW` |
+| Security Group | `b3-1-web-sg` · `sg-0f6063dfd511ae455`; HTTP 80 전체, SSH 22 개인 IP/32 |
+| EC2 | `b3-1-web` · `i-0fe03d78532fbbe17` · `t3.micro` · Amazon Linux 2023 |
+| 퍼블릭 IPv4 (검증 당시) | `3.35.220.184` (리소스 종료 시 사용 불가) |
+| IAM | `b3-1-lab` 사용자 / `b3-1-lab-policy` 기본 버전 2 |
+
+### 외부 접속 제출 방식: **A — 브라우저 접속**
+
+- URL: `http://3.35.220.184/`
+- 실제 화면: **Hello Cloud - B3-1** 표시 확인.
+- 증빙: [실제 브라우저 화면 캡처](docs/screenshots/external-page.png). 사용자 제공 원본의 **주소창과 웹페이지 영역을 크롭하고 색상 수를 줄인 사본**입니다. 임의로 웹페이지를 재구성한 그림이 아닙니다.
+
+![실제 외부 접속 화면](docs/screenshots/external-page.png)
+
+### 추가 검증: **B — WSL Ubuntu의 외부 GET /health**
+
+- 명령: `curl -i --connect-timeout 10 --max-time 20 http://3.35.220.184/health`
+- 결과: **HTTP/1.1 200 OK**, 본문 **OK**.
+- 서버 Date 응답: **2026-10-25 23:00:10 GMT** (한국시간 **2026-10-26 08:00:10 KST**).
+- 실제 터미널 출력: [외부 HTTP 검증 로그](docs/evidence/external-health.txt).
+- 내부 Nginx/SSH/아웃바운드 실제 출력: [내부 검증 로그](docs/evidence/internal-checks.txt).
+
+**주의:** B 방식은 터미널 원문으로 증빙했고, 화면 스크린샷은 A 방식에 해당합니다. 선택한 필수 제출 방식은 **A**입니다.
+
+### 필수 제출물 현황
 
 | 필수 결과물 | 파일 | 상태 |
 |---|---|---|
-| 아키텍처 그림 | `docs/architecture.png` | 작성됨 |
-| **외부 접속 증명 (B: GET /health)** | 이 README의 실제 URL + `docs/screenshots/external-health.png` | **AWS 배포 후 실제 촬영 필요** |
-| 트러블슈팅 보고서 | `docs/troubleshooting.md` | 가이드 작성, **실제 문제 재현 기록 필요** |
-| 리소스 정리 체크리스트 | `docs/cleanup-checklist.md` | 작성됨, **실제 삭제 검증 필요** |
-
-### 외부 접속 확인 기록 — 실제 실습 후 직접 채우기
-
-| 항목 | 실습 결과 |
-|---|---|
-| 방식 | **B — `GET http://<PUBLIC_IP>/health`** |
-| 실제 퍼블릭 IP / URL | **미배포 / 미기록** |
-| HTTP 상태와 본문 | **미검증** (기대: `200`, `OK`) |
-| 테스트 일시 | 미실행 |
-| 스크린샷 | 미첨부 — `docs/screenshots/external-health.png` |
-
-**증빙 방법:** EC2 밖의 **내 PC**에서 `curl -i http://실제퍼블릭IP/health`를 실행합니다. **명령·퍼블릭 IP·HTTP 200·OK**가 함께 보이도록 실제 화면을 캡처하고 위 표를 갱신합니다. **실제 실행 전에 이 표를 완료로 바꾸지 않습니다.** 실습 후에는 모든 자원을 종료/삭제합니다.
+| 아키텍처 | [docs/architecture.png](docs/architecture.png) | 작성 완료 |
+| 외부 접속 증빙 | README의 방식 A URL 및 [브라우저 캡처](docs/screenshots/external-page.png) | **실제 확인 완료** |
+| 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
+| 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **미완료: 실제 AWS 삭제·확인 필요** |
 
 ## 안전과 비용
 

@@ -1,0 +1,16 @@
+# 실제 WSL Ubuntu 외부 HTTP 접속 기록
+# 제공된 실제 실행 결과. 브라우저 캡처는 ../screenshots/external-page.png 참조.
+# 외부 HTTP 검증 시각: 서버 Date 2026-10-25T23:00:10Z = 2026-10-26 08:00:10 KST
+jiho@JIHO-DESKTOP:~$ curl -i --connect-timeout 10 --max-time 20 http://3.35.220.184/health
+HTTP/1.1 200 OK
+Server: nginx/1.30.6
+Date: Sun, 25 Oct 2026 23:00:10 GMT
+Content-Type: application/octet-stream
+Content-Length: 3
+Last-Modified: Sun, 25 Oct 2026 22:52:02 GMT
+Connection: keep-alive
+ETag: "6ade8812-3"
+Accept-Ranges: bytes
+
+OK
+jiho@JIHO-DESKTOP:~$
