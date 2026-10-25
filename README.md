@@ -2,7 +2,7 @@
 
 AWS 서울 리전(`ap-northeast-2`)에 **VPC → Public Subnet → Internet Gateway/Route Table → Security Group → EC2/Nginx**를 연결하고 외부에서 HTTP로 접속하는 미션입니다. 보너스 과제(HTTPS/Docker)는 제외했습니다.
 
-> **실제 실습 상태 (2026-10-26 KST):** AWS 콘솔에서 직접 VPC/서브넷/IGW/라우팅/SG/EC2/Nginx를 만들고 SSH·내부 HTTP 200·아웃바운드 HTTP 200·브라우저 접속·외부 `/health` HTTP 200/`OK`를 확인했습니다. **EC2/EBS/서브넷/전용 라우트/IGW/VPC/SG/AWS 키 페어/IAM 사용자 및 정책 삭제를 AWS 콘솔에서 확인했습니다.** 로컬 개인 키·추가 과금 가능 리소스·Billing 검증은 별도로 남아 있습니다. 이 저장소의 CloudFormation 템플릿은 별도의 재현용 예제이며 실제 실습은 콘솔 수동 경로 A로 진행했습니다.
+> **실제 실습 상태 (2026-10-26 KST):** AWS 콘솔에서 직접 VPC/서브넷/IGW/라우팅/SG/EC2/Nginx를 만들고 SSH·내부 HTTP 200·아웃바운드 HTTP 200·브라우저 접속·외부 `/health` HTTP 200/`OK`를 확인했습니다. **EC2/EBS/서브넷/전용 라우트/IGW/VPC/SG/AWS 키 페어/IAM 사용자 및 정책 삭제를 AWS 콘솔에서 확인했습니다.** WSL 개인 키 삭제 성공, Windows 원본 키 삭제(사용자 확인), 2026년 10월 예상 청구액 USD 0.00도 확인했습니다. **다만 실제 최종 청구 확정 및 EIP/NAT/로드 밸런서/RDS 잔여 목록 점검은 완료로 단정하지 않습니다.** 이 저장소의 CloudFormation 템플릿은 별도의 재현용 예제이며 실제 실습은 콘솔 수동 경로 A로 진행했습니다.
 
 ## 먼저 이것부터: 서버가 켜졌는데 밖에서 접속이 안 되는 이유
 
@@ -97,7 +97,7 @@ python -m unittest discover -s tests -v
 | 아키텍처 | [docs/architecture.png](docs/architecture.png) | 작성 완료 |
 | 외부 접속 증빙 | README의 방식 A URL 및 [브라우저 캡처](docs/screenshots/external-page.png) | **실제 확인 완료** |
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
-| 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **주요 실습 자원 삭제 확인**; 로컬 키·비용 관련 최종 점검 미확인 |
+| 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **실습 자원 및 개인 키 정리 확인, 예상 청구액 $0.00 기록**; 최종 청구 확정 전 |
 
 **실제 정리 완료 내역 (2026-10-26 KST, AWS 콘솔 화면 기준):**
 
@@ -109,11 +109,15 @@ python -m unittest discover -s tests -v
 - **EC2 키 페어 `b3-1`:** AWS 키 페어 삭제 성공, 목록 0건 확인.
 - **IAM 사용자 `b3-1-lab` 및 정책 `b3-1-lab-policy`:** 각각 삭제 성공 배너, 사용자 0명 및 정책 필터 `b3` 일치 0건 확인.
 
-**아직 확인되지 않은 항목:** WSL/Windows의 `.pem` 개인 키 파일 삭제, Elastic IP·NAT Gateway·Load Balancer·RDS의 잔여 여부, AWS Billing 실제 청구 내역. 스크린샷은 특정 시점의 계정·리전 화면이므로 다른 리전/자원까지 없음을 보증하지 않습니다. 세부 기록은 [리소스 정리 체크리스트](docs/cleanup-checklist.md)를 참고하세요.
+**개인 키 정리 확인:** WSL Ubuntu에서 `rm -i ~/.ssh/b3-1.pem`에 `yes`로 응답하여 삭제했습니다. Windows의 `C:\\Users\\jiho\\Downloads\\b3-1.pem`은 사용자가 이미 삭제했다고 확인했으며, WSL에서 해당 경로에 `No such file or directory`가 표시됐습니다.
+
+**AWS Billing 확인 (2026-10-26 08:37 KST):** 결제 기간 2026년 10월, 예상 총합계 **USD 0.00**, 서비스별 요금의 Data Transfer **USD 0.00**, 결제 상태 **대기 중**. 이것은 해당 시점의 *예상 청구* 화면으로 최종 정산의 0달러를 보장하지 않습니다. 월 청구 확정 또는 사용량 반영 후 다시 조회해야 합니다.
+
+**추가 확인 미완료:** EC2 Elastic IP·NAT Gateway·Load Balancer·RDS의 각 서비스별 잔여 자원 목록을 직접 조회한 증거는 아직 없습니다(이번 실습 구축 절차에는 포함하지 않았음). 특정 시점/리전의 화면과 사용자 확인을 넘어 다른 리전·계정의 자원 부재까지 단정하지 않습니다. 세부 기록은 [리소스 정리 체크리스트](docs/cleanup-checklist.md)를 참고하세요.
 
 ## 안전과 비용
 
-EC2/VPC 인프라 구축은 제한 정책을 연결한 IAM 사용자 `b3-1-lab`으로 진행했습니다. IAM 사용자·정책 발급과 종료 등 계정 관리 작업은 별도로 수행했습니다. `AdministratorAccess`는 실습 사용자에게 부여하지 않았습니다. 다만 초기 계정 관리에 Root 로그인을 사용했으므로, 미션의 'Root 계정 미사용' 조건을 계정 전체 작업에 문자 그대로 적용한다면 예외가 있었다는 점을 구분합니다. SSH 22는 현재 본인의 퍼블릭 IP 한 개만 허용하고, 비밀번호·AWS 액세스 키·SSH 개인 키는 절대 저장소에 올리지 않습니다.
+EC2/VPC 인프라 구축은 제한 정책을 연결한 IAM 사용자 `b3-1-lab`으로 진행했습니다. IAM 사용자·정책 발급과 종료 등 계정 관리 작업은 별도로 수행했습니다. `AdministratorAccess`는 실습 사용자에게 부여하지 않았습니다. 다만 초기 계정 관리에 Root 로그인을 사용했으므로, 미션의 'Root 계정 미사용' 조건을 계정 전체 작업에 문자 그대로 적용한다면 예외가 있었다는 점을 구분합니다. 서버 운영 중 SSH 22는 본인의 퍼블릭 IP 한 개(/32)만 허용했고, 비밀번호·AWS 액세스 키·SSH 개인 키는 절대 저장소에 올리지 않습니다.
 
 AWS의 Free Tier 혜택은 계정 생성 시기와 계정 플랜에 따라 다릅니다. EC2뿐 아니라 EBS, 퍼블릭 IPv4, 네트워크 전송도 살펴봐야 합니다. 자세한 확인 절차는 실습서에 있습니다.
 
