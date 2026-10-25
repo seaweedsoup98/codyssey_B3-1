@@ -99,7 +99,7 @@ python -m unittest discover -s tests -v
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
 | 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **미완료: 실제 AWS 삭제·확인 필요** |
 
-**실제 정리 진행 기록 (2026-10-26 KST):** AWS EC2 인스턴스 목록에서 `b3-1-web` (`i-0fe03d78532fbbe17`)의 상태 **`종료됨(Terminated)`**을 확인했습니다. 서울 리전의 EBS 볼륨 목록도 새로고침 후 **0건**으로 표시되어 실습용 루트 볼륨 `vol-0eb866e2e013ed6f3`이 더 이상 남아 있지 않은 것을 확인했습니다. 실습용 Public Subnet `subnet-078b1593e96abeeb0`도 **삭제 완료 배너와 목록에서 사라진 사실**을 확인했습니다. 전용 Route Table `rtb-0476ec11e4a44b4af`도 **목록에서 사라져 삭제 완료**를 확인했습니다. **IGW/Security Group/VPC/키페어/IAM 등 나머지 리소스 정리는 아직 미확인**입니다.
+**실제 정리 진행 기록 (2026-10-26 KST):** AWS EC2 인스턴스 목록에서 `b3-1-web` (`i-0fe03d78532fbbe17`)의 상태 **`종료됨(Terminated)`**을 확인했습니다. 서울 리전의 EBS 볼륨 목록도 새로고침 후 **0건**으로 표시되어 실습용 루트 볼륨 `vol-0eb866e2e013ed6f3`이 더 이상 남아 있지 않은 것을 확인했습니다. 실습용 Public Subnet `subnet-078b1593e96abeeb0`도 **삭제 완료 배너와 목록에서 사라진 사실**을 확인했습니다. 전용 Route Table `rtb-0476ec11e4a44b4af`도 **목록에서 사라져 삭제 완료**를 확인했습니다. 실습용 Internet Gateway `igw-00435840b6f0950ae`의 **분리 및 삭제 성공 배너**도 확인했습니다. **Security Group/VPC/키페어/IAM 등 나머지 리소스 정리는 아직 미확인**입니다.
 
 ## 안전과 비용
 
