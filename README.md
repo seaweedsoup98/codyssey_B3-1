@@ -99,7 +99,7 @@ python -m unittest discover -s tests -v
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
 | 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **미완료: 실제 AWS 삭제·확인 필요** |
 
-**실제 정리 진행 기록 (2026-10-26 KST):** EC2 `i-0fe03d78532fbbe17`의 AWS 콘솔에서 '종료(삭제) 처리됨' 메시지를 확인했습니다. 그러나 EC2 목록에는 `running` 필터가 적용되어 있어 `terminated` 상태 자체는 아직 확인하지 못했습니다. EBS `vol-0eb866e2e013ed6f3` (gp3, 8 GiB)는 다음 화면에 여전히 표시됐으며 현재 상태와 연결 여부가 보이지 않아 실제 삭제 여부는 **미확인**입니다. 잔여 볼륨 및 네트워크 정리 완료로 표시하지 않습니다.
+**실제 정리 진행 기록 (2026-10-26 KST):** AWS EC2 인스턴스 목록에서 `b3-1-web` (`i-0fe03d78532fbbe17`)의 상태 **`종료됨(Terminated)`**을 확인했습니다. 서울 리전의 EBS 볼륨 목록도 새로고침 후 **0건**으로 표시되어 실습용 루트 볼륨 `vol-0eb866e2e013ed6f3`이 더 이상 남아 있지 않은 것을 확인했습니다. **남은 Subnet/Route Table/IGW/Security Group/VPC/키페어/IAM 리소스 정리는 아직 미확인**입니다.
 
 ## 안전과 비용
 
