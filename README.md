@@ -99,6 +99,8 @@ python -m unittest discover -s tests -v
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
 | 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **미완료: 실제 AWS 삭제·확인 필요** |
 
+**실제 정리 진행 기록 (2026-10-26 KST):** EC2 `i-0fe03d78532fbbe17`의 AWS 콘솔에서 '종료(삭제) 처리됨' 메시지를 확인했습니다. 그러나 EC2 목록에는 `running` 필터가 적용되어 있어 `terminated` 상태 자체는 아직 확인하지 못했습니다. EBS `vol-0eb866e2e013ed6f3` (gp3, 8 GiB)는 다음 화면에 여전히 표시됐으며 현재 상태와 연결 여부가 보이지 않아 실제 삭제 여부는 **미확인**입니다. 잔여 볼륨 및 네트워크 정리 완료로 표시하지 않습니다.
+
 ## 안전과 비용
 
 루트 계정과 `AdministratorAccess`를 실습에 사용하지 않습니다. SSH 22는 현재 본인의 퍼블릭 IP 한 개만 허용하고, 비밀번호·AWS 액세스 키·SSH 개인 키는 절대 저장소에 올리지 않습니다.
