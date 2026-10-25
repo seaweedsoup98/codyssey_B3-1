@@ -2,7 +2,7 @@
 
 AWS 서울 리전(`ap-northeast-2`)에 **VPC → Public Subnet → Internet Gateway/Route Table → Security Group → EC2/Nginx**를 연결하고 외부에서 HTTP로 접속하는 미션입니다. 보너스 과제(HTTPS/Docker)는 제외했습니다.
 
-> **실제 실습 상태 (2026-10-26 KST):** AWS 콘솔에서 직접 VPC/서브넷/IGW/라우팅/SG/EC2/Nginx를 만들고 SSH·내부 HTTP 200·아웃바운드 HTTP 200·브라우저 접속·외부 `/health` HTTP 200/`OK`를 확인했습니다. **실습 리소스 삭제는 아직 확인되지 않았습니다.** 이 저장소의 CloudFormation 템플릿은 별도의 재현용 예제이며 실제 실습은 콘솔 수동 경로 A로 진행했습니다.
+> **실제 실습 상태 (2026-10-26 KST):** AWS 콘솔에서 직접 VPC/서브넷/IGW/라우팅/SG/EC2/Nginx를 만들고 SSH·내부 HTTP 200·아웃바운드 HTTP 200·브라우저 접속·외부 `/health` HTTP 200/`OK`를 확인했습니다. **EC2/EBS/서브넷/전용 라우트/IGW/VPC/SG/AWS 키 페어/IAM 사용자 및 정책 삭제를 AWS 콘솔에서 확인했습니다.** 로컬 개인 키·추가 과금 가능 리소스·Billing 검증은 별도로 남아 있습니다. 이 저장소의 CloudFormation 템플릿은 별도의 재현용 예제이며 실제 실습은 콘솔 수동 경로 A로 진행했습니다.
 
 ## 먼저 이것부터: 서버가 켜졌는데 밖에서 접속이 안 되는 이유
 
@@ -97,13 +97,23 @@ python -m unittest discover -s tests -v
 | 아키텍처 | [docs/architecture.png](docs/architecture.png) | 작성 완료 |
 | 외부 접속 증빙 | README의 방식 A URL 및 [브라우저 캡처](docs/screenshots/external-page.png) | **실제 확인 완료** |
 | 트러블슈팅 | [docs/troubleshooting.md](docs/troubleshooting.md) | **실제 IAM 권한 오류 → 정책 수정 → 배포 성공 기록** |
-| 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **미완료: 실제 AWS 삭제·확인 필요** |
+| 리소스 정리 | [docs/cleanup-checklist.md](docs/cleanup-checklist.md) | **주요 실습 자원 삭제 확인**; 로컬 키·비용 관련 최종 점검 미확인 |
 
-**실제 정리 진행 기록 (2026-10-26 KST):** AWS EC2 인스턴스 목록에서 `b3-1-web` (`i-0fe03d78532fbbe17`)의 상태 **`종료됨(Terminated)`**을 확인했습니다. 서울 리전의 EBS 볼륨 목록도 새로고침 후 **0건**으로 표시되어 실습용 루트 볼륨 `vol-0eb866e2e013ed6f3`이 더 이상 남아 있지 않은 것을 확인했습니다. 실습용 Public Subnet `subnet-078b1593e96abeeb0`도 **삭제 완료 배너와 목록에서 사라진 사실**을 확인했습니다. 전용 Route Table `rtb-0476ec11e4a44b4af`도 **목록에서 사라져 삭제 완료**를 확인했습니다. 실습용 Internet Gateway `igw-00435840b6f0950ae`의 **분리 및 삭제 성공 배너**도 확인했습니다. **Security Group/VPC/키페어/IAM 등 나머지 리소스 정리는 아직 미확인**입니다.
+**실제 정리 완료 내역 (2026-10-26 KST, AWS 콘솔 화면 기준):**
+
+- **EC2 `i-0fe03d78532fbbe17`:** `Terminated` 확인. **EBS `vol-0eb866e2e013ed6f3`:** 볼륨 목록 0건 확인.
+- **Subnet `subnet-078b1593e96abeeb0`:** 삭제 성공 배너 및 목록 제거 확인.
+- **전용 Route Table `rtb-0476ec11e4a44b4af`:** 목록에서 사라진 것을 확인.
+- **IGW `igw-00435840b6f0950ae`:** VPC 분리·삭제 성공 배너 확인.
+- **VPC `vpc-092e559c4035289db`와 SG `sg-0f6063dfd511ae455`:** VPC 및 종속 SG 삭제 성공 배너 확인. 기존 기본 VPC `vpc-063331ec92f7b3dfb`는 유지.
+- **EC2 키 페어 `b3-1`:** AWS 키 페어 삭제 성공, 목록 0건 확인.
+- **IAM 사용자 `b3-1-lab` 및 정책 `b3-1-lab-policy`:** 각각 삭제 성공 배너, 사용자 0명 및 정책 필터 `b3` 일치 0건 확인.
+
+**아직 확인되지 않은 항목:** WSL/Windows의 `.pem` 개인 키 파일 삭제, Elastic IP·NAT Gateway·Load Balancer·RDS의 잔여 여부, AWS Billing 실제 청구 내역. 스크린샷은 특정 시점의 계정·리전 화면이므로 다른 리전/자원까지 없음을 보증하지 않습니다. 세부 기록은 [리소스 정리 체크리스트](docs/cleanup-checklist.md)를 참고하세요.
 
 ## 안전과 비용
 
-루트 계정과 `AdministratorAccess`를 실습에 사용하지 않습니다. SSH 22는 현재 본인의 퍼블릭 IP 한 개만 허용하고, 비밀번호·AWS 액세스 키·SSH 개인 키는 절대 저장소에 올리지 않습니다.
+EC2/VPC 인프라 구축은 제한 정책을 연결한 IAM 사용자 `b3-1-lab`으로 진행했습니다. IAM 사용자·정책 발급과 종료 등 계정 관리 작업은 별도로 수행했습니다. `AdministratorAccess`는 실습 사용자에게 부여하지 않았습니다. 다만 초기 계정 관리에 Root 로그인을 사용했으므로, 미션의 'Root 계정 미사용' 조건을 계정 전체 작업에 문자 그대로 적용한다면 예외가 있었다는 점을 구분합니다. SSH 22는 현재 본인의 퍼블릭 IP 한 개만 허용하고, 비밀번호·AWS 액세스 키·SSH 개인 키는 절대 저장소에 올리지 않습니다.
 
 AWS의 Free Tier 혜택은 계정 생성 시기와 계정 플랜에 따라 다릅니다. EC2뿐 아니라 EBS, 퍼블릭 IPv4, 네트워크 전송도 살펴봐야 합니다. 자세한 확인 절차는 실습서에 있습니다.
 
