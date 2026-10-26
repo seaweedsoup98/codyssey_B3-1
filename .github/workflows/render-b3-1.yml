@@ -1,0 +1,35 @@
+name: Render B3-1 Architecture
+on:
+  push:
+    paths:
+      - 'docs/architecture.svg'
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render high-resolution PNG from SVG
+        run: |
+          python3 -m venv /tmp/b3-1-render
+          /tmp/b3-1-render/bin/pip install --quiet cairosvg Pillow
+          /tmp/b3-1-render/bin/python - <<'PY'
+          import io
+          from pathlib import Path
+          import cairosvg
+          from PIL import Image
+          svg = Path('docs/architecture.svg').read_bytes()
+          rendered = cairosvg.svg2png(bytestring=svg, output_width=2000, output_height=1260)
+          image = Image.open(io.BytesIO(rendered)).convert('L')
+          image.point(lambda v: 255 if v >= 220 else 0, mode='1').save('docs/architecture.png', optimize=True)
+          PY
+      - name: Commit rendered PNG
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Render simplified B3-1 architecture at 2000px"
+            git push
+          fi
