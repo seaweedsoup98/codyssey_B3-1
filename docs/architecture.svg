@@ -1,32 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="630" viewBox="0 0 1000 630" role="img" aria-label="AWS B3-1: Internet connects to Internet Gateway attached at the VPC boundary. Public Subnet contains EC2 running Nginx, with security group rules. The subnet uses a route table pointing to IGW.">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650" role="img" aria-label="B3-1 AWS network: Internet via an Internet Gateway attached at the VPC boundary, into a Public Subnet and its EC2 Nginx server. A Security Group controls EC2 traffic, and a Route Table connects the subnet to the IGW.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#101827" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linejoin="round"/>
     </marker>
   </defs>
   <style>
-    text { font-family: 'DejaVu Sans', Arial, sans-serif; fill: #101827; }
-    .title { font-size: 34px; font-weight: 700; }
-    .label { font-size: 25px; font-weight: 700; }
-    .small { font-size: 22px; font-weight: 500; }
-    .path { fill: none; stroke: #101827; stroke-width: 3; marker-end: url(#arrow); }
+    text { font-family: 'DejaVu Sans', Arial, sans-serif; fill: #172033; }
+    .title { font-size: 31px; font-weight: 700; }
+    .heading { font-size: 24px; font-weight: 700; }
+    .detail { font-size: 20px; }
+    .arrow { stroke: #172033; stroke-width: 3; fill: none; marker-end: url(#arrow); }
   </style>
-  <rect width="1000" height="630" rx="14" fill="#ffffff"/>
-  <text class="title" x="500" y="55" text-anchor="middle">B3-1  ·  AWS Web Service</text>
-  <rect x="54" y="210" width="892" height="368" rx="16" fill="#ffffff" stroke="#101827" stroke-width="3"/>
-  <text class="label" x="83" y="264">VPC  10.0.0.0/16</text>
-  <rect x="361" y="93" width="278" height="57" rx="11" fill="#ffffff" stroke="#101827" stroke-width="2"/>
-  <text class="label" x="500" y="130" text-anchor="middle">Internet</text>
-  <path class="path" d="M500 150 V174"/>
-  <path class="path" d="M500 242 V315"/>
-  <rect x="336" y="176" width="328" height="66" rx="11" fill="#ffffff" stroke="#101827" stroke-width="3"/>
-  <text class="label" x="500" y="218" text-anchor="middle">Internet Gateway</text>
-  <rect x="142" y="312" width="716" height="153" rx="12" fill="#ffffff" stroke="#101827" stroke-width="2.5"/>
-  <text class="label" x="169" y="351">Public Subnet  10.0.1.0/24</text>
-  <rect x="318" y="373" width="364" height="54" rx="10" fill="#ffffff" stroke="#101827" stroke-width="2"/>
-  <text class="label" x="500" y="409" text-anchor="middle">EC2 + Nginx</text>
-  <text class="small" x="500" y="450" text-anchor="middle">SG: HTTP 80 (all)  ·  SSH 22 (my IP/32)</text>
-  <path d="M500 466 V498" stroke="#64748b" stroke-width="2.5" stroke-dasharray="6 5"/>
-  <rect x="199" y="500" width="602" height="58" rx="10" fill="#ffffff" stroke="#101827" stroke-width="2"/>
-  <text class="label" x="500" y="538" text-anchor="middle">Route Table: 0.0.0.0/0 → IGW</text>
+  <rect width="1000" height="650" rx="16" fill="#fff"/>
+  <text class="title" x="500" y="55" text-anchor="middle">B3-1 · AWS Web Service</text>
+  <rect x="373" y="78" width="254" height="54" rx="11" fill="#fff" stroke="#172033" stroke-width="2.5"/>
+  <text class="heading" x="500" y="113" text-anchor="middle">Internet</text>
+  <path class="arrow" d="M500 132 V153"/>
+  <rect x="58" y="187" width="884" height="419" rx="14" fill="#fafafa" stroke="#172033" stroke-width="3"/>
+  <text class="heading" x="82" y="256">VPC 10.0.0.0/16</text>
+  <rect x="332" y="153" width="336" height="70" rx="11" fill="#fff" stroke="#172033" stroke-width="3"/>
+  <text class="heading" x="500" y="198" text-anchor="middle">Internet Gateway</text>
+  <rect x="127" y="292" width="746" height="209" rx="13" fill="#fff" stroke="#172033" stroke-width="2.6"/>
+  <text class="heading" x="152" y="331">Public Subnet</text>
+  <text class="detail" x="152" y="356">10.0.1.0/24</text>
+  <rect x="254" y="361" width="492" height="129" rx="11" fill="#fff" stroke="#172033" stroke-width="2.4" stroke-dasharray="8 6"/>
+  <text class="detail" x="277" y="389" font-weight="600">Security Group</text>
+  <rect x="353" y="404" width="294" height="49" rx="8" fill="#fff" stroke="#172033" stroke-width="2.5"/>
+  <text class="heading" x="500" y="436" text-anchor="middle">EC2 + Nginx</text>
+  <text class="detail" x="500" y="474" text-anchor="middle" font-size="17px">HTTP 80: all · SSH 22: my IP/32</text>
+  <path class="arrow" d="M500 223 V399"/>
+  <path d="M820 501 V523" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="5 5"/>
+  <rect x="171" y="520" width="658" height="64" rx="10" fill="#fff" stroke="#172033" stroke-width="2.5"/>
+  <text class="heading" x="500" y="560" text-anchor="middle">Route Table: 0.0.0.0/0 → IGW</text>
 </svg>

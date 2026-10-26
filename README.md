@@ -60,4 +60,6 @@ python -m unittest discover -s tests -v
 
 EC2/EBS, 실습 VPC·서브넷·IGW·라우팅·보안 그룹, AWS 키 페어, IAM 사용자·정책 삭제를 확인했다. WSL 개인 키도 삭제했으며 Windows 원본 키도 제거했다.
 
-2026-10-26 08:37 KST에 확인한 **10월 예상 청구액은 USD 0.00**이었다. 최종 청구는 당시 미확정이고 Elastic IP·NAT Gateway·Load Balancer·RDS 목록의 별도 잔여 조회는 수행하지 않았다. 자세한 결과는 [정리 체크리스트](docs/cleanup-checklist.md)에 기록했다.
+2026-10-26 08:37 KST에 확인한 **10월 예상 청구액은 USD 0.00**이었다. 최종 청구는 당시 미확정이며 Elastic IP·NAT Gateway·Load Balancer·RDS 목록의 직접적인 잔여 조회는 수행하지 않았다. 실습에서 Elastic IP는 별도로 할당하지 않고 EC2 자동 퍼블릭 IPv4를 사용했다. 자세한 결과는 [정리 체크리스트](docs/cleanup-checklist.md)에 기록했다.
+
+**미검증·제약 사항:** EC2 내부에서 `curl http://localhost/health`의 200은 기록했지만 `curl http://localhost/` 실행 결과는 별도로 남기지 못했다(외부 브라우저에서는 루트 페이지 표시 확인). 계정 생성일은 2024-10-12로 당시 신규 계정의 12개월 EC2 무료 혜택 기간은 경과했으므로 프리 티어 사용으로 인정되는지는 확인되지 않았다. IAM 사용자 생성·삭제를 위한 초기 계정 관리에는 Root 로그인을 사용했으며, EC2/VPC 실습은 `b3-1-lab`으로 수행했다.
