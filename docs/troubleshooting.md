@@ -1,162 +1,49 @@
-# B3-1 문제 해결 실습 — "안 열린다"를 원인으로 바꾸는 법
+# 트러블슈팅 — IAM 보안 그룹 조회 권한 누락
 
-> **실습 상태:** 아래의 IAM 오류는 2026-10-26 실제 실습에서 발생·해결한 문제입니다. 이후의 404 및 SG 규칙 실험은 **추가 학습용 시나리오이며 실제 재현 기록이 아닙니다.**
+**환경:** AWS 서울 리전, IAM 사용자 `b3-1-lab`, EC2 생성 콘솔.  
+**발생 및 해결:** 2026-10-26 KST.
 
-## 실제 트러블슈팅 보고서 — IAM 권한 누락으로 보안 그룹 조회 불가
+## 1. 증상
 
-| 단계 | 실제 관측/분석 |
-|---|---|
-| **증상** | EC2 인스턴스 시작 화면의 네트워크 설정에서 기존 `b3-1-web-sg`를 선택했지만 **`ec2:GetSecurityGroupsForVpc` 작업 권한이 없다는 경고**가 표시되어 보안 그룹 유효성을 확인할 수 없었음 |
-| **가설** | 제한된 IAM 사용자 `b3-1-lab`에 정책을 연결했지만, 새 AWS 콘솔의 보안 그룹 목록 조회에 사용하는 개별 **Get API**가 누락되었을 가능성 |
-| **검증** | 실제 정책 `b3-1-lab-policy`의 `ReadEc2` Allow 작업은 `ec2:Describe*`만 포함함. `ec2:GetSecurityGroupsForVpc`는 이름이 `Describe`로 시작하지 않아 이 와일드카드에 포함되지 않음. 콘솔의 경고와 정책을 대조하여 누락 작업을 확인 |
-| **조치** | `ReadEc2.Action`에 `ec2:GetSecurityGroupsForVpc`를 추가하되 `aws:RequestedRegion=ap-northeast-2` 제한 유지. AWS에서 정책 버전 **2**를 생성하고 **기본 버전**으로 적용 |
-| **결과** | 이후 EC2 생성 화면에서 기존 SG `b3-1-web-sg` 선택 상태로 권한 경고가 보이지 않았고, EC2 `i-0fe03d78532fbbe17` 생성 성공. 이어서 SSH 접속과 Nginx의 내부 및 외부 HTTP 200 응답까지 성공 |
-| **재발방지** | `Describe*`가 모든 조회 API를 포함한다고 가정하지 않음. 새 기능에 AccessDenied가 발생하면 **정확한 Action 이름 → 실제 정책 허용 목록 → 최소 권한 한 건 추가 → 동일 화면 재검증** 순서로 해결. 관리자 권한을 일괄 부여하지 않음 |
-
-### 왜 이 사례가 중요한가?
-
-EC2에 접근하는 HTTP 80과 SSH 22는 **Security Group**이 처리하지만, AWS 콘솔이 SG 목록을 **읽는 행위**는 IAM API 권한이 처리합니다. 'EC2 접속 자체가 안 된다'는 문제가 아니라 **EC2를 설정하는 콘솔 기능**에서 문제가 발생한 것입니다. 정책의 `Action`은 API 이름과 매칭하며, `Describe*`는 `GetSecurityGroupsForVpc`에 해당하지 않습니다.
-
-- 변경된 코드: [IAM 정책 JSON](../iam/least-privilege-policy.json), `Sid: ReadEc2`.
-- 실제 AWS 계정 화면에서 확인된 사항: 누락 권한 경고, 정책 버전 2 기본 적용, 이후 인스턴스 생성.
-- 실제 서버 검증: [내부 검증 로그](evidence/internal-checks.txt), [외부 검증 로그](evidence/external-health.txt).
-- 단서의 한계: AWS CloudTrail 원문/정책 시뮬레이터 출력은 별도로 확보하지 않았으므로, 콘솔 경고·정책 내용·수정 후 성공이라는 관측 결과에 근거합니다.
-
----
-
-
-
-## 1. 왜 무턱대고 Security Group부터 고치면 안 될까?
-
-`curl http://PUBLIC_IP/health`가 실패하면 포트를 넓게 열고 싶어집니다. 하지만 **Nginx 자체가 꺼져 있는 문제**라면 보안 그룹을 아무리 바꿔도 해결되지 않습니다. 반대로 Nginx는 잘 작동하지만 **외부 라우트가 없는 경우** 서버 안의 파일을 수정해도 소용없습니다.
-
-그래서 네트워크 통신을 **한 번에 끝까지 시험하지 말고 가까운 곳부터 멀리** 검증합니다.
+EC2 생성 화면의 네트워크 설정에서 기존 보안 그룹 `b3-1-web-sg`를 선택했지만, 다음 API 작업에 대한 **권한이 없다는 경고**가 표시됐다.
 
 ```text
-[EC2 안의 localhost]
-  실패 → Nginx, UserData, 파일, Linux 로그
-  성공 → 다음
-    ↓
-[EC2 안의 https://example.com]
-  실패 → 퍼블릭 IP, 서브넷 라우트, IGW, DNS, 아웃바운드 SG
-  성공 → 다음
-    ↓
-[내 PC의 http://PUBLIC_IP/health]
-  실패 → 퍼블릭 IP, 인바운드 SG 80, 연결된 Route Table
-  HTTP 404 → Nginx에 도달했다. 요청 경로/파일을 확인
-  HTTP 200 OK → 외부 웹 접근 완료
+ec2:GetSecurityGroupsForVpc
 ```
 
-**핵심 사고법:** 장애 증상은 **어느 층까지 성공했는지**에 따라 원인 후보를 좁히는 정보입니다. 로그로 검증하기 전에는 "보안 그룹 때문이다"라고 단정하지 않습니다.
+EC2가 실행된 뒤 통신이 막힌 문제가 아니라, **콘솔에서 VPC의 Security Group을 조회하는 단계**에서 발생한 오류였다.
 
-## 2. 안전하게 직접 재현할 오류: 없는 페이지의 HTTP 404
+## 2. 가설과 검증
 
-Nginx를 끄거나 SSH를 열어 놓을 필요가 없습니다. **접속은 성공했지만 URL 경로를 잘못 요청하면 어떤 일이 생기는지** 확인합니다.
+실습 사용자에게 연결된 정책 `b3-1-lab-policy`의 조회 권한은 처음에 다음과 같았다.
 
-### 2-1. 증상 관찰(내 PC에서)
-
-```bash
-curl -i http://<PUBLIC_IP>/no-such-page
+```json
+"Action": "ec2:Describe*"
 ```
 
-**예상:** 응답 상태 `404 Not Found`. (실제 상태와 명령 실행 시간을 기록해야 합니다.)
+IAM의 `Action`은 API 작업 이름과 일치해야 한다. `Describe*` 패턴은 `Describe`로 시작하는 API만 허용하므로 `GetSecurityGroupsForVpc`는 여기에 포함되지 않는다. 실제 콘솔 경고와 정책 내용을 대조해 누락된 권한을 확인했다.
 
-### 2-2. 왜 이런 일이 생겼을까? 가설
+## 3. 조치
 
-우리 서버에는 `index.html`과 `health`만 만들었습니다. `no-such-page`라는 파일은 만들지 않았습니다. 따라서 Nginx가 잘 작동하더라도 없는 경로를 요청하면 404를 반환할 수 있습니다.
+정책의 `ReadEc2` 항목에 필요한 조회 권한만 추가했다.
 
-이 현상은 **외부 네트워크가 통과했기 때문에 관측된 HTTP 응답**이기도 합니다. 네트워크 타임아웃과 차이가 있습니다.
-
-### 2-3. 서버에서 증거 확인(EC2 SSH 안에서)
-
-```bash
-sudo tail -n 20 /var/log/nginx/access.log
-ls -l /usr/share/nginx/html/
-sudo tail -n 20 /var/log/nginx/error.log
+```json
+"Action": [
+  "ec2:Describe*",
+  "ec2:GetSecurityGroupsForVpc"
+]
 ```
 
-- `access.log`: 실제로 요청이 Nginx까지 왔는지, 어떤 경로를 요청했고 **어떤 HTTP 상태코드**를 반환했는지 확인.
-- `ls`: 실제 존재하는 파일 이름을 확인.
-- `error.log`: 서버 쪽 오류 메시지가 있다면 추가 단서. 오류 종류에 따라 기록되지 않을 수도 있습니다.
+리전 조건 `aws:RequestedRegion = ap-northeast-2`는 유지하고, AWS IAM 정책 **버전 2**를 기본 버전으로 지정했다. `AdministratorAccess`는 부여하지 않았다.
 
-**예상 로그 형식** (실제 로그가 아님):
+## 4. 결과
 
-```text
-"GET /no-such-page HTTP/1.1" 404 ...
-```
+기존 보안 그룹을 선택한 EC2 생성 화면에서 이전 권한 경고가 보이지 않았고, EC2 `i-0fe03d78532fbbe17` 생성에 성공했다. 이후 SSH 로그인, Nginx 상태 `active`, 내부 및 외부 HTTP 200 응답도 확인했다.
 
-### 2-4. 조치와 재검증
+- 변경 정책: [`iam/least-privilege-policy.json`](../iam/least-privilege-policy.json)의 `ReadEc2`
+- 검증 기록: [SSH·내부 서버](evidence/internal-checks.txt), [외부 HTTP](evidence/external-health.txt)
+- **검증 범위:** 콘솔 경고, 정책 변경과 재시도 결과를 근거로 했다. CloudTrail 원문이나 IAM 정책 시뮬레이터 결과는 확보하지 않았다.
 
-내 PC에서 실제 있는 경로를 요청합니다.
+## 5. 재발 방지
 
-```bash
-curl -i http://<PUBLIC_IP>/health
-```
-
-**기대:** HTTP 200과 `OK`. 같은 SG와 라우트를 유지한 채 URL만 고쳐 정상화됐다면, 이번 장애의 원인은 보안 그룹이 아니라 요청 경로였다는 설명에 힘이 실립니다.
-
-### 2-5. 이 실습을 보고서로 바꾸기
-
-아래 표를 **실제 결과로** 채우세요. "예상"과 "실제로 확인한 것"을 구분하는 습관이 중요합니다.
-
-| 필수 항목 | 실제 기록 |
-|---|---|
-| 증상 | [직접 실행한 명령, 발생 시각, 실제 HTTP 상태와 출력] |
-| 가설 | [경로가 없어서 404인지, 서버 자체가 꺼졌는지 구분] |
-| 검증 | [access.log의 실제 요청 경로/상태와 ls의 실제 파일 목록] |
-| 조치 | [없는 URL 대신 존재하는 /health 요청] |
-| 결과 | [변경 전/후 실제 상태·응답 비교] |
-| 재발방지 | [접속 URL 검증을 배포 체크리스트에 추가] |
-
-404는 **HTTP 경로 문제**를 보여 주는 가장 안전한 사례입니다. 네트워크·보안그룹 자체를 평가하고 싶다면 아래 3장을 참고하세요.
-
-## 3. '접속 시간 초과'를 이해하는 실험: SG가 HTTP를 막으면?
-
-> **선택 실험:** 이미 SSH 세션과 정상 HTTP 접속을 확인한 경우에만, 짧은 실습 시간 동안 **TCP 80 인바운드 허용 규칙만 일시적으로 제거**했다가 즉시 복구합니다. SSH 22 규칙은 변경하지 않고, 0.0.0.0/0 전체 포트 허용은 절대 추가하지 않습니다.
-
-1. EC2 Security Group의 현재 인바운드 두 규칙을 캡처/기록합니다.
-2. **HTTP TCP 80 규칙만** 일시적으로 제거합니다.
-3. 내 PC에서 `curl -i --connect-timeout 5 --max-time 8 http://<PUBLIC_IP>/health`를 실행합니다.
-4. 타임아웃 여부와 SG 상태를 확인합니다. 네트워크 상황에 따라 구체적 curl 오류 메시지는 달라질 수 있습니다.
-5. **즉시 HTTP TCP 80 / Source 0.0.0.0/0을 복구**하고, 외부 HTTP 200/OK를 재확인합니다.
-
-**여기서 '아하'가 생기는 이유:** 잘 작동하던 Nginx를 건드리지 않았는데 SG의 문을 닫자 요청이 더 이상 닿지 않습니다. 즉 **SG는 앱 내부 기능이 아니라 앱에 도착할 수 있는 네트워크 트래픽**을 통제합니다.
-
-**왜 Nginx access.log에 막힌 요청이 안 보일 수도 있나?** SG에서 막히면 패킷이 서버의 Nginx까지 도달하지 않았으므로 Nginx 입장에서는 기록할 HTTP 요청 자체가 없습니다. 로그에 없다는 사실만으로 어떤 SG 규칙이 원인이었는지는 입증할 수 없으니, **SG 규칙 전후 + 외부 curl 결과**를 함께 증빙해야 합니다.
-
-**주의:** 서비스를 다른 사람이 사용하고 있다면 HTTP 80 규칙 제거는 장애를 유발합니다. 이번처럼 일회성 테스트 환경에서만 수행합니다.
-
-## 4. 로그를 보는 위치가 원인을 알려 준다
-
-| 관찰 | 원인 후보 | 확인 위치 / 명령 |
-|---|---|---|
-| EC2가 `pending`/상태 검사 실패 | 인스턴스 부팅 문제 | EC2 Instances / Status checks |
-| `Permission denied (publickey)` | SSH 키 또는 OS 사용자 오류 | EC2 Key pair, `ec2-user`, 로컬 개인 키 |
-| SSH만 타임아웃 | SG 22 출발지 / 퍼블릭 IP / 네트워크 경로 | SG Inbound, 내 현재 IP, Route Table |
-| `systemctl is-active nginx`가 inactive | Nginx 미설치·실행 실패 | `sudo systemctl status nginx` |
-| `curl localhost` 실패 | Nginx/listen 80 또는 로컬 OS 설정 | `sudo journalctl -u nginx -n 50` |
-| `dnf install` 실패 | 패키지 저장소 연결 실패 등 | `sudo tail -n 60 /var/log/cloud-init-output.log` |
-| EC2의 인터넷 outbound 실패 | Route/IGW/Public IP/SG egress/DNS | VPC Route Tables, EC2 Network |
-| 외부 curl 타임아웃 | 퍼블릭 IP 또는 인바운드 경로/방화벽 | EC2 Public IP, SG 80, IGW, Route Table |
-| 외부 HTTP 404 | 서버는 응답했지만 경로가 없음 | `/var/log/nginx/access.log`, 웹 파일 목록 |
-| AWS 콘솔 `AccessDenied` | IAM API 작업/리소스 조건이 맞지 않음 | IAM policy, 실제 거부된 Action/Resource |
-
-**로그 읽기 순서:** 관찰 명령과 시각 → 발생 위치 → 예상 정상 결과 → 실제 결과 → 가장 좁은 원인 가설 → 조치 하나만 변경 → 동일 조건에서 재검증.
-
-## 5. 이 미션에 맞는 트러블슈팅 기록 예시 구조
-
-아래는 **작성법 예시**입니다. 자신의 실제 실행 값으로 대체하지 않으면 평가용 증빙이 아닙니다.
-
-```text
-제목: /health 대신 /no-such-page 요청 시 404
-관측 시각: [YYYY-MM-DD HH:MM KST]
-증상: [내 PC에서 실행한 curl 명령과 실제 응답 원문]
-가설: [Nginx는 살아 있으나 정적 파일 경로가 다름]
-검증: [access.log 실제 해당 행 + ls 명령 실제 결과]
-조치: [URL을 /health로 수정]
-결과: [실제 HTTP 200/OK, 확인 시각]
-재발방지: [검증 스크립트/README에 정확한 헬스 URL 기록]
-관련 증빙: [스크린샷 이름 또는 로그 위치]
-```
-
-이 보고서는 문제를 멋지게 보이게 만드는 문서가 아닙니다. **다른 사람이 같은 로그와 설정을 보면 내 판단을 재현할 수 있는지**가 핵심입니다.
+권한 오류 시 관리자 권한을 추가하기보다 **거부된 Action 확인 → 정책의 허용 작업과 비교 → 필요한 권한만 추가 → 같은 작업 재검증** 순서로 대응한다. AWS 콘솔에서 사용하는 조회 API가 모두 `Describe*` 형태인 것은 아니다.
